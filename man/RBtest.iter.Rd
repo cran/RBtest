@@ -41,7 +41,8 @@ bin.var<-sample(LETTERS[1:2],n,replace=TRUE, prob=c(0.3,0.7)) # binary variable 
 cat.var<-sample(LETTERS[1:3],n,replace=TRUE, prob=c(0.5,0.3,0.2)) # categorical variable [A,B,C].
 # The vector of probabilities of occurence A, B and C is (0.5,0.3,0.7).
 num.var<-runif(n,0,1) # Additional continuous variable following a U(0,1) distribution
-mydata<-cbind.data.frame(mydata,bin.var,cat.var,num.var) # dataframe with r+3 variables
+mydata<-cbind.data.frame(mydata,bin.var,cat.var,num.var,stringsAsFactors = TRUE)
+# dataframe with r+3 variables
 colnames(mydata)=c("v1","v2","X1","X2","X3","X4","X5", "X6") # names of columns
 # MCAR on X1 and X4 by using v1 and v2. MAR on X3 and X5 by using X2 and X6.
 mydata$X1[which(mydata$v1<=sort(mydata$v1)[mis*n])]<-NA # X1: (mis*n)\% of MCAR data.

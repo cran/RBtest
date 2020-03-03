@@ -25,9 +25,10 @@
 #' bin.var<-sample(LETTERS[1:2],n,replace=TRUE, prob=c(0.3,0.7)) # binary variable [A,B].
 #' # The probability of being in one of the categories is 0.3.
 #' cat.var<-sample(LETTERS[1:3],n,replace=TRUE, prob=c(0.5,0.3,0.2)) # categorical variable [A,B,C].
-#' # The vector of probabilities of occurence A, B and C is (0.5,0.3,0.7).
+# The vector of probabilities of occurence A, B and C is (0.5,0.3,0.7).
 #' num.var<-runif(n,0,1) # Additional continuous variable following a U(0,1) distribution
-#' mydata<-cbind.data.frame(mydata,bin.var,cat.var,num.var) # dataframe with r+3 variables
+#' mydata<-cbind.data.frame(mydata,bin.var,cat.var,num.var,stringsAsFactors = TRUE)
+#' # dataframe with r+3 variables
 #' colnames(mydata)=c("v1","v2","X1","X2","X3","X4","X5", "X6") # names of columns
 #' # MCAR on X1 and X4 by using v1 and v2. MAR on X3 and X5 by using X2 and X6.
 #' mydata$X1[which(mydata$v1<=sort(mydata$v1)[mis*n])]<-NA # X1: (mis*n)% of MCAR data.
@@ -44,7 +45,7 @@
 #' # and the corresponding observations in X5 are replaced with missing data.
 #' mydata$v1=NULL
 #' mydata$v2=NULL
-#'
+
 #' RBtest(mydata)
 #'
 #' @importFrom stats complete.cases ks.test lm p.adjust predict
@@ -55,27 +56,24 @@ RBtest<-function(data){
 	Type.1<-rep(NA,ncol(data))
 	for (h in which(complete.cases(t(data))==FALSE)){ #only test the missing data on variables which contains missing data (logic)
 
-		U=data.frame(data[,h],data[ ,colSums(is.na(data)) == 0]) # we use for the first test only the complete variables
+		U=data.frame(data[,h],data[ ,colSums(is.na(data)) == 0],stringsAsFactors = TRUE) # we use for the first test only the complete variables
 
 		#names(U1)[1] <- names(D)[h]
 
-		new_A=data.frame(U[is.na(U[,1])==FALSE,]) # "A" part (complete cases)
-		new_B=data.frame(U[is.na(U[,1])==TRUE,])	# "B" part
+		new_A=data.frame(U[is.na(U[,1])==FALSE,],stringsAsFactors = TRUE) # "A" part (complete cases)
+		new_B=data.frame(U[is.na(U[,1])==TRUE,],stringsAsFactors = TRUE)	# "B" part
 
 		names(new_A)[1]="DV"
 
 		# if the variable is binary (2 category) :
 
 		if (is.factor(new_A$DV)==TRUE && length(levels(new_A$DV))==2) {
-			sink("NUL") # sink() --> to hide the output of multinom()
-			reg_A=multinom(DV~.,data=new_A)
-			sink()
+			reg_A=multinom(DV~.,trace=FALSE,data=new_A) #trace argument for silent computation.
 			names(new_A)[1]=names(data)[h]
-
 			u_obs_hat=reg_A$fitted.values
-			u_obs_hat=data.frame(u_obs_hat, (1-u_obs_hat))
+			u_obs_hat=data.frame(u_obs_hat, (1-u_obs_hat),stringsAsFactors = TRUE)
 			u_mis_hat=predict(reg_A, new_B, "probs")
-			u_mis_hat=data.frame(u_mis_hat, (1-u_mis_hat))
+			u_mis_hat=data.frame(u_mis_hat, (1-u_mis_hat),stringsAsFactors = TRUE)
 
 			#-- ks.test --#
 
@@ -99,9 +97,7 @@ RBtest<-function(data){
 
 		names(new_A)[1]="DV"
 		if (is.factor(new_A$DV)==TRUE && length(levels(new_A$DV))>2) {
-			sink("NUL") # sink() --> to hide the output of multinom()
-			reg_A=multinom(DV~.,data=new_A)
-			sink()
+			reg_A=multinom(DV~.,trace=FALSE,data=new_A) #trace argument for silent computation.
 			names(new_A)[1]=names(data)[h]
 			u_obs_hat=reg_A$fitted.values
 			u_mis_hat=predict(reg_A, new_B, "probs")
@@ -187,7 +183,8 @@ RBtest<-function(data){
 #' cat.var<-sample(LETTERS[1:3],n,replace=TRUE, prob=c(0.5,0.3,0.2)) # categorical variable [A,B,C].
 #' # The vector of probabilities of occurence A, B and C is (0.5,0.3,0.7).
 #' num.var<-runif(n,0,1) # Additional continuous variable following a U(0,1) distribution
-#' mydata<-cbind.data.frame(mydata,bin.var,cat.var,num.var) # dataframe with r+3 variables
+#' mydata<-cbind.data.frame(mydata,bin.var,cat.var,num.var,stringsAsFactors = TRUE)
+#' # dataframe with r+3 variables
 #' colnames(mydata)=c("v1","v2","X1","X2","X3","X4","X5", "X6") # names of columns
 #' # MCAR on X1 and X4 by using v1 and v2. MAR on X3 and X5 by using X2 and X6.
 #' mydata$X1[which(mydata$v1<=sort(mydata$v1)[mis*n])]<-NA # X1: (mis*n)% of MCAR data.
@@ -217,7 +214,7 @@ RBtest.iter<-function(data,K){
 	Type.1 <- RBtest(data)$type
 
 	D1<-data
-	TYPE_k=data.frame(matrix(NA, ncol=ncol(data)+1, nrow=K+1)) #initialisation of the sequences of missing data mechanisms for each iteration
+	TYPE_k=data.frame(matrix(NA, ncol=ncol(data)+1, nrow=K+1),stringsAsFactors = TRUE) #initialisation of the sequences of missing data mechanisms for each iteration
 
 	Type.2<-rep(NA,ncol(data))
 	k=1 # k is the number of iterations for the while loop. This is for excluding the case of infinite loop.
@@ -229,27 +226,24 @@ RBtest.iter<-function(data,K){
 
 		for (h in which(complete.cases(t(data))==FALSE)){ #only test the missing data on variables which contains missing data (logic)
 
-			U=data.frame(data[,h],D1[,-h]) # first on v_h from the original dataset
+			U=data.frame(data[,h],D1[,-h],stringsAsFactors = TRUE) # first on v_h from the original dataset
 
 			names(U)[1] <- names(data)[h]
 
-			new_A=data.frame(U[is.na(U[,1])==FALSE,]) # "A" part
-			new_B=data.frame(U[is.na(U[,1])==TRUE,])	# "B" part
+			new_A=data.frame(U[is.na(U[,1])==FALSE,],stringsAsFactors = TRUE) # "A" part
+			new_B=data.frame(U[is.na(U[,1])==TRUE,],stringsAsFactors = TRUE)	# "B" part
 
 			names(new_A)[1]="DV"
 
 			# if the variable is binary (2 category) :
 
 			if (is.factor(new_A$DV)==TRUE && length(levels(new_A$DV))==2) {
-				sink("NUL") # sink() --> to hide the output of multinom()
-				reg_A=multinom(DV~.,data=new_A)
-				sink()
-
+				reg_A=multinom(DV~.,trace=FALSE,data=new_A) #trace argument for silent computation.
 				names(new_A)[1]=names(data)[h]
 				u_obs_hat=reg_A$fitted.values
-				u_obs_hat=data.frame(u_obs_hat, (1-u_obs_hat))
+				u_obs_hat=data.frame(u_obs_hat, (1-u_obs_hat),stringsAsFactors = TRUE)
 				u_mis_hat=predict(reg_A, new_B, "probs")
-				u_mis_hat=data.frame(u_mis_hat, (1-u_mis_hat))
+				u_mis_hat=data.frame(u_mis_hat, (1-u_mis_hat),stringsAsFactors = TRUE)
 
 				#-- ks.test --#
 
@@ -274,9 +268,8 @@ RBtest.iter<-function(data,K){
 					D1[is.na(data[,h]),h]<-sample(D1[!is.na(data[,h]),h],length(D1[is.na(data[,h]),h]),replace=TRUE)
 
 				} else {
-					sink("NUL") #sink()-->to hide the output of mice()
-					U=complete(mice(U, m = 1, maxit=5))
-					sink()
+					U=complete(mice(U, m = 1, maxit=5, printFlag=FALSE))
+					#printFlag option for silent computation
 					D1[,h]=U[,1]
 				}
 
@@ -284,10 +277,7 @@ RBtest.iter<-function(data,K){
 			names(new_A)[1]="DV"
 			# if the variable is categorical with more than two categories :
 			if (is.factor(new_A$DV)==TRUE && length(levels(new_A$DV))>2) {
-				sink("NUL") # sink() --> to hide the output of multinom()
-				reg_A=multinom(DV~.,data=new_A)
-				sink()
-
+				reg_A=multinom(DV~.,trace=FALSE,data=new_A) #trace argument for silent computation.
 				names(new_A)[1]=names(data)[h]
 				u_obs_hat=reg_A$fitted.values
 				u_mis_hat=predict(reg_A, new_B, "probs")
@@ -316,9 +306,8 @@ RBtest.iter<-function(data,K){
 					D1[is.na(data[,h]),h]<-sample(D1[!is.na(data[,h]),h],length(D1[is.na(data[,h]),h]),replace=TRUE)
 
 				} else {
-					sink("NUL") #sink()-->to hide the output of mice()
-					U=complete(mice(U, m = 1, maxit=5))
-					sink()
+					U=complete(mice(U, m = 1, maxit=5, printFlag=FALSE))
+					#printFlag option for silent computation
 					D1[,h]=U[,1]
 				}
 			}
@@ -349,9 +338,8 @@ RBtest.iter<-function(data,K){
 					D1[is.na(data[,h]),h]<-sample(D1[!is.na(data[,h]),h],length(D1[is.na(data[,h]),h]),replace=TRUE)
 				}
 				if(RES<=0.05) {
-					sink("NUL") #sink()-->to hide the output of mice()
-					U=complete(mice(U, m = 1, maxit=5))
-					sink()
+					U=complete(mice(U, m = 1, printFlag=FALSE))
+					#printFlag option for silent computation
 					D1[,h]=U[,1]
 				}
 			}
